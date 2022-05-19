@@ -7,11 +7,13 @@ await ws.ConnectAsync(new Uri("ws://localhost:5023/"), CancellationToken.None);
 var buffer = new byte[256];
 while (ws.State == WebSocketState.Open)
 {
+    Console.Write("Digite um comando a ser executado pelo servidor [pwd, dir, etc...]: ");
+    var comando = Console.ReadLine();
 
-    var dado = Console.ReadLine();
+    Console.WriteLine($"[Comando digitado] '{comando}'\n");
 
     await ws.SendAsync(
-        Encoding.ASCII.GetBytes(dado),
+        Encoding.ASCII.GetBytes(comando??""),
         WebSocketMessageType.Text,
         true,
         CancellationToken.None);
@@ -20,5 +22,5 @@ while (ws.State == WebSocketState.Open)
     if (result.MessageType == WebSocketMessageType.Close)
         await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
     else
-        Console.WriteLine(Encoding.ASCII.GetString(buffer, 0, result.Count));
+        Console.WriteLine($"[RETORNO SERVER]: {Encoding.ASCII.GetString(buffer, 0, result.Count)}");
 }

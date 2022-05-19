@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
@@ -7,19 +8,7 @@ var app = builder.Build();
 
 app.UseWebSockets();
 
-var data = new Dictionary<string, string>()
-{
-    { "nome", "Pedro"},
-    { "cpf","12345678910" },
-    { "rg",  "1234567"},
-    { "datanascimento", new DateTime(2001, 9, 4).ToString("dd/MM/yyyy") },
-    { "matricula", "19070031" },
-    { "curso", "BCC"}
-};
-
-
 var buffer = new byte[256];
-
 app.Map("/", async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -32,16 +21,12 @@ app.Map("/", async context =>
 
             var resultSocket = await webSocket.ReceiveAsync(buffer, CancellationToken.None);
 
-            var property = Encoding.ASCII.GetString(buffer, 0, resultSocket.Count).ToLower();
+            var command = Encoding.ASCII.GetString(buffer, 0, resultSocket.Count).ToLower();
 
-            var retornoClient = string.Empty;
-            if (!data.ContainsKey(property))
-                retornoClient = "Dado não encontrado";
-
-            retornoClient = data[property];
+            var retornoCommand = ExecuteCommand(command);
 
             await webSocket.SendAsync(
-                Encoding.ASCII.GetBytes(retornoClient),
+                Encoding.ASCII.GetBytes(retornoCommand),
                 WebSocketMessageType.Text,
                 true,
                 CancellationToken.None);
@@ -50,5 +35,24 @@ app.Map("/", async context =>
         }
     }
 });
+
+
+string ExecuteCommand(string command)
+{
+    Process cmd = new Process();
+    cmd.StartInfo.FileName = "cmd.exe";
+    cmd.StartInfo.RedirectStandardInput = true;
+    cmd.StartInfo.RedirectStandardOutput = true;
+    cmd.StartInfo.CreateNoWindow = true;
+    cmd.StartInfo.UseShellExecute = false;
+    cmd.Start();
+
+    cmd.StandardInput.WriteLine(command);
+    cmd.StandardInput.Flush();
+    cmd.StandardInput.Close();
+    cmd.WaitForExit();
+
+    return cmd.StandardOutput.ReadToEnd();
+}
 
 await app.RunAsync();
